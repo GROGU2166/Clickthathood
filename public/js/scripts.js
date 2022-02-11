@@ -41,8 +41,6 @@ var MAP_BACKGROUND_MAX_ZOOM_US = 17;
 var POINT_SCALE = 75000;
 var MIN_POINT_RADIUS = 16;
 
-var MAPBOX_ACCESS_TOKEN =
-  "pk.eyJ1IjoiZXBhdWxzb24iLCJhIjoiY2t2bzVkcHRpMWJlazJucW41YndqYmZhMCJ9.nEyn_qkwrcwLi8T-jVFpew";
 
 var ADD_YOUR_CITY_URL =
   "https://github.com/codeforgermany/click_that_hood/wiki/How-to-add-a-city-to-Click-That-%E2%80%99Hood";
@@ -117,6 +115,10 @@ var currentNeighborhoodOverThreshold = false;
 
 var defaultLanguage = "";
 var language = "";
+
+var TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png";
+var map;
 
 // ---
 
@@ -771,14 +773,7 @@ function updateCount() {
 function prepareMainMenuMapBackground() {
   updateCanvasSize();
 
-  if (typeof mapboxgl != "undefined") {
-    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
-    map = new mapboxgl.Map({
-      container: "maps-background",
-      style: "mapbox://styles/mapbox/satellite-v9",
-      center: [50, 33],
-      zoom: pixelRatio,
-    });
+
   }
 
   lastMapWidth = document.querySelector("#maps-background").offsetWidth;
@@ -1795,10 +1790,7 @@ function prepareMapBackground() {
     zoom--;
   }
 
-  // TODO resize properly instead of recreating every single time
-  document.querySelector("#maps-background").innerHTML = "";
 
-  if (typeof mapboxgl != "undefined") {
     if (pixelRatio == 2) {
       zoom++;
     }
@@ -1819,8 +1811,7 @@ function prepareMapBackground() {
       size *= 2;
     }
 
-    /*
-    map.tileSize = {
+
       x: Math.round(size / pixelRatio),
       y: Math.round(size / pixelRatio),
     };*/
@@ -1835,58 +1826,13 @@ function prepareMapBackground() {
 
     var leftMargin = BODY_MARGIN * 2 + HEADER_WIDTH;
 
-    // we don't have map.tileSize.x here anymore
-    //var ratio = leftMargin / map.tileSize.x
-    var ratio = leftMargin / Math.round(size / pixelRatio);
+
 
     // we mostly don't use ratio or longStep or latStep anymore
     // a lot of the code in the section above could be deleted
     lon -= ratio * longStep;
 
-    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
-    // this was originally inspired by
-    // https://stackoverflow.com/questions/35586360/mapbox-gl-js-getbounds-fitbounds
-    // but we're trying not to need turfbox
-    // d3 geobounds doesn't deal with the antimeridian
-    // but the internal findBoundaries for whatever reason has problems with Africa
-    // The Africa map is the only one that uses a GeometryCollection feature in the geojson
-    // so maybe a TODO to figure out why findBoundaries is a bit off for Africa
-
-    tempboundaries = findBoundaries();
-    geoBounds = [
-      tempboundaries.minLon,
-      tempboundaries.minLat,
-      tempboundaries.maxLon,
-      tempboundaries.maxLat,
-    ];
-    if (cityId === "africa" || CITY_DATA[cityId].pointsInsteadOfPolygons) {
-      geoBounds = d3.geoBounds(geoBoundsObj);
-    }
-
-    // by settings bounds when we create the map, it overrides anything we might have
-    // provided for centering/zooming, so we don' provide that anymore
-    map = new mapboxgl.Map({
-      container: "maps-background",
-      style: "mapbox://styles/mapbox/satellite-v9",
-      bounds: geoBounds,
-      fitBoundsOptions: {
-        padding: {
-          left: BODY_MARGIN * 2 + HEADER_WIDTH,
-          top: MAP_VERT_PADDING,
-          bottom: MAP_VERT_PADDING,
-          right: 0,
-        },
-      },
-      interactive: false,
-    });
-
-    // for debugging, kind of helpful - remember to remove the 'interactive'
-    // part above
-    // map.addControl(new mapboxgl.NavigationControl(), 'top-left');
-
-    // I don't think we need this anymore
-    lastMapWidth = document.querySelector("#maps-background").offsetWidth;
   }
 }
 
